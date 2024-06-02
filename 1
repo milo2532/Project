@@ -1,71 +1,52 @@
 import random
 
-# Asking for the user's name
 name = input("What is your name? ")
 
-# Greeting the user
 print("Good Luck! ", name)
 
-# List of words to guess from
 words = ['rainbow', 'computer', 'science', 'programming',
          'python', 'mathematics', 'player', 'condition',
          'reverse', 'water', 'board', 'geeks']
 
-# Function to choose a random word from the list
 word = random.choice(words)
 
-# Informing the user to start guessing
 print("Guess the characters")
 
-# Variable to store guessed characters
 guesses = ''
 
-# Number of turns
 turns = 12
 
-# Main game loop
 while turns > 0:
 
-    # Count of failed attempts
     failed = 0
 
-    # Loop through each character in the word
     for char in word:
-        # If the character has been guessed correctly, print it
         if char in guesses:
             print(char, end=" ")
         else:
-            # If not, print an underscore and increment the fail count
             print("_", end=" ")
             failed += 1
 
-    print()  # New line for better readability
+    print()  
 
-    # If there are no failed attempts, the user has won
     if failed == 0:
         print("You Win!")
         print("The word is: ", word)
         break
 
-    # Ask the user to guess a character
     guess = input("Guess a character: ").lower()  # Convert input to lowercase
 
-    # Check if the input is valid (a single alphabetic character)
     if len(guess) != 1 or not guess.isalpha():
         print("Invalid input. Please enter a single alphabetic character.")
         continue
 
-    # Add the guessed character to the guesses variable
     guesses += guess
 
-    # If the guessed character is not in the word, decrement the turns
     if guess not in word:
         turns -= 1
         print("Wrong")
 
-        # Print the number of turns left
         print("You have", + turns, 'more guesses')
 
-        # If no turns are left, the user loses
         if turns == 0:
             print("You Lose! The word was:", word)
