@@ -1,5 +1,6 @@
 import random
 
+# Define word categories
 def get_word_category(word):
     categories = {
         'rainbow': 'Nature',
@@ -17,12 +18,33 @@ def get_word_category(word):
     }
     return categories.get(word, 'Unknown')
 
+# Display hint for the word
 def display_hint(word):
     print(f"Hint: The first letter of the word is '{word[0]}'")
 
+# Get difficulty level
+def select_difficulty():
+    difficulties = {'easy': 15, 'medium': 12, 'hard': 8}
+    while True:
+        choice = input("Select difficulty (easy, medium, hard): ").lower()
+        if choice in difficulties:
+            return choice, difficulties[choice]
+        else:
+            print("Invalid choice. Please select easy, medium, or hard.")
+
+# Validate player name
+def get_player_name():
+    while True:
+        name = input("What is your name? ").strip()
+        if name.isalpha():
+            return name
+        else:
+            print("Invalid name. Please enter alphabetic characters only.")
+
+# Play the game
 def play_game():
-    name = input("What is your name? ")
-    print("Good Luck! ", name)
+    name = get_player_name()
+    print("Good Luck!", name)
 
     words = ['rainbow', 'computer', 'science', 'programming',
              'python', 'mathematics', 'player', 'condition',
@@ -32,30 +54,26 @@ def play_game():
     print("Guess the characters")
     print(f"Category: {get_word_category(word)}")
 
+    difficulty, turns = select_difficulty()
+    print(f"You have selected {difficulty} difficulty. You have {turns} turns.")
+
     guesses = ''
-    turns = 12
     score = 0
     hint_used = False
 
     while turns > 0:
         failed = 0
+        display_word = ''.join([char if char in guesses else '_' for char in word])
+        print(f"Word: {display_word}")
+        print(f"Guessed letters: {', '.join(sorted(guesses)) if guesses else 'None'}")
 
-        for char in word:
-            if char in guesses:
-                print(char, end=" ")
-            else:
-                print("_", end=" ")
-                failed += 1
-
-        print()
-
-        if failed == 0:
+        if '_' not in display_word:
             print("You Win!")
-            print("The word is: ", word)
-            score += 10
+            print("The word is:", word)
+            score += 10 * len(word)  # Bonus points for winning
             break
 
-        guess = input("Guess a character (or type 'hint' for a hint): ").lower()  # Convert input to lowercase
+        guess = input("Guess a character (or type 'hint' for a hint): ").lower()
 
         if guess == 'hint':
             if not hint_used:
@@ -79,18 +97,42 @@ def play_game():
         if guess not in word:
             turns -= 1
             print("Wrong")
-            print("You have", turns, 'more guesses')
+            print(f"You have {turns} more guesses")
 
             if turns == 0:
                 print("You Lose! The word was:", word)
         else:
-            score += 1
+            score += 2 if difficulty == 'easy' else 4 if difficulty == 'medium' else 6  # Score per correct letter
 
     print("Your score is:", score)
+    return name, score
 
+# Leaderboard to track high scores
+def update_leaderboard(name, score):
+    leaderboard = []
+    try:
+        with open("leaderboard.txt", "r") as file:
+            leaderboard = [line.strip().split(',') for line in file]
+            leaderboard = [(name, int(score)) for name, score in leaderboard]
+    except FileNotFoundError:
+        pass
+
+    leaderboard.append((name, score))
+    leaderboard = sorted(leaderboard, key=lambda x: x[1], reverse=True)[:5]  # Keep top 5 scores
+
+    with open("leaderboard.txt", "w") as file:
+        for name, score in leaderboard:
+            file.write(f"{name},{score}\n")
+
+    print("\nLeaderboard:")
+    for i, (name, score) in enumerate(leaderboard):
+        print(f"{i+1}. {name} - {score}")
+
+# Main game loop
 def main():
     while True:
-        play_game()
+        name, score = play_game()
+        update_leaderboard(name, score)
         replay = input("Do you want to play again? (yes/no): ").lower()
         if replay != 'yes':
             print("Thanks for playing!")
