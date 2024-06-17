@@ -1,4 +1,6 @@
 import random
+import time
+import json
 
 # Define word categories
 def get_word_category(word):
@@ -41,25 +43,72 @@ def get_player_name():
         else:
             print("Invalid name. Please enter alphabetic characters only.")
 
+# Save game state
+def save_game(name, guesses, word, turns, hint_used, start_time):
+    game_state = {
+        "name": name,
+        "guesses": guesses,
+        "word": word,
+        "turns": turns,
+        "hint_used": hint_used,
+        "start_time": start_time
+    }
+    with open("saved_game.json", "w") as file:
+        json.dump(game_state, file)
+    print("Game saved successfully!")
+
+# Load game state
+def load_game():
+    try:
+        with open("saved_game.json", "r") as file:
+            game_state = json.load(file)
+        print("Game loaded successfully!")
+        return game_state
+    except FileNotFoundError:
+        print("No saved game found.")
+        return None
+
+# Custom word input
+def get_custom_word():
+    while True:
+        word = input("Enter a word for the other player to guess: ").strip().lower()
+        if word.isalpha() and len(word) > 1:
+            return word
+        else:
+            print("Invalid word. Please enter a valid alphabetic word.")
+
+# Multiplayer game
+def multiplayer_game():
+    player1_name = get_player_name()
+    player2_name = get_player_name()
+    word = get_custom_word()
+    print(f"{player2_name}, it's your turn to guess the word chosen by {player1_name}.")
+
+    play_game(player_name=player2_name, custom_word=word)
+
 # Play the game
-def play_game():
-    name = get_player_name()
-    print("Good Luck!", name)
+def play_game(player_name=None, custom_word=None):
+    if not player_name:
+        player_name = get_player_name()
+    
+    print("Good Luck!", player_name)
 
-    words = ['rainbow', 'computer', 'science', 'programming',
-             'python', 'mathematics', 'player', 'condition',
-             'reverse', 'water', 'board', 'geeks']
-
-    word = random.choice(words)
-    print("Guess the characters")
-    print(f"Category: {get_word_category(word)}")
+    if custom_word:
+        word = custom_word
+    else:
+        words = ['rainbow', 'computer', 'science', 'programming',
+                 'python', 'mathematics', 'player', 'condition',
+                 'reverse', 'water', 'board', 'geeks']
+        word = random.choice(words)
+        print(f"Category: {get_word_category(word)}")
 
     difficulty, turns = select_difficulty()
     print(f"You have selected {difficulty} difficulty. You have {turns} turns.")
 
     guesses = ''
-    score = 0
     hint_used = False
+    hint_limit = 2  # Number of hints allowed
+    start_time = time.time()
 
     while turns > 0:
         failed = 0
@@ -70,19 +119,22 @@ def play_game():
         if '_' not in display_word:
             print("You Win!")
             print("The word is:", word)
-            score += 10 * len(word)  # Bonus points for winning
             break
 
-        guess = input("Guess a character (or type 'hint' for a hint): ").lower()
+        guess = input("Guess a character (or type 'hint' for a hint, 'save' to save game): ").lower()
 
         if guess == 'hint':
-            if not hint_used:
+            if hint_used < hint_limit:
                 display_hint(word)
-                hint_used = True
+                hint_used += 1
                 continue
             else:
-                print("Hint already used.")
+                print("No more hints available.")
                 continue
+
+        if guess == 'save':
+            save_game(player_name, guesses, word, turns, hint_used, start_time)
+            return
 
         if len(guess) != 1 or not guess.isalpha():
             print("Invalid input. Please enter a single alphabetic character.")
@@ -102,37 +154,67 @@ def play_game():
             if turns == 0:
                 print("You Lose! The word was:", word)
         else:
-            score += 2 if difficulty == 'easy' else 4 if difficulty == 'medium' else 6  # Score per correct letter
+            print("Correct!")
 
-    print("Your score is:", score)
-    return name, score
+    end_time = time.time()
+    time_taken = int(end_time - start_time)
+    score = calculate_score(difficulty, turns, time_taken)
+    print(f"Your score is: {score} points")
+    return player_name, score, time_taken
+
+# Calculate score
+def calculate_score(difficulty, turns, time_taken):
+    base_score = {'easy': 100, 'medium': 200, 'hard': 300}
+    score = base_score[difficulty] + (turns * 10) - (time_taken // 10)
+    return max(score, 0)
 
 # Leaderboard to track high scores
-def update_leaderboard(name, score):
+def update_leaderboard(name, score, time_taken):
     leaderboard = []
     try:
         with open("leaderboard.txt", "r") as file:
             leaderboard = [line.strip().split(',') for line in file]
-            leaderboard = [(name, int(score)) for name, score in leaderboard]
+            leaderboard = [(name, int(score), int(time_taken)) for name, score, time_taken in leaderboard]
     except FileNotFoundError:
         pass
 
-    leaderboard.append((name, score))
-    leaderboard = sorted(leaderboard, key=lambda x: x[1], reverse=True)[:5]  # Keep top 5 scores
+    leaderboard.append((name, score, time_taken))
+    leaderboard = sorted(leaderboard, key=lambda x: (x[1], -x[2]), reverse=True)[:5]  # Keep top 5 scores, faster time as tiebreaker
 
     with open("leaderboard.txt", "w") as file:
-        for name, score in leaderboard:
-            file.write(f"{name},{score}\n")
+        for name, score, time_taken in leaderboard:
+            file.write(f"{name},{score},{time_taken}\n")
 
     print("\nLeaderboard:")
-    for i, (name, score) in enumerate(leaderboard):
-        print(f"{i+1}. {name} - {score}")
+    for i, (name, score, time_taken) in enumerate(leaderboard):
+        print(f"{i+1}. {name} - {score} points ({time_taken} seconds)")
 
 # Main game loop
 def main():
     while True:
-        name, score = play_game()
-        update_leaderboard(name, score)
+        load_choice = input("Do you want to load the previous game? (yes/no): ").lower()
+        if load_choice == 'yes':
+            game_state = load_game()
+            if game_state:
+                player_name, guesses, word, turns, hint_used, start_time = (
+                    game_state["name"],
+                    game_state["guesses"],
+                    game_state["word"],
+                    game_state["turns"],
+                    game_state["hint_used"],
+                    game_state["start_time"]
+                )
+                play_game(player_name, word)
+            else:
+                continue
+        else:
+            game_mode = input("Do you want to play singleplayer or multiplayer? (single/multi): ").lower()
+            if game_mode == 'multi':
+                multiplayer_game()
+            else:
+                name, score, time_taken = play_game()
+                update_leaderboard(name, score, time_taken)
+        
         replay = input("Do you want to play again? (yes/no): ").lower()
         if replay != 'yes':
             print("Thanks for playing!")
