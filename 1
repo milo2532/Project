@@ -1,52 +1,100 @@
 import random
 
-name = input("What is your name? ")
+def get_word_category(word):
+    categories = {
+        'rainbow': 'Nature',
+        'computer': 'Technology',
+        'science': 'Academic',
+        'programming': 'Technology',
+        'python': 'Technology',
+        'mathematics': 'Academic',
+        'player': 'General',
+        'condition': 'General',
+        'reverse': 'General',
+        'water': 'Nature',
+        'board': 'General',
+        'geeks': 'General'
+    }
+    return categories.get(word, 'Unknown')
 
-print("Good Luck! ", name)
+def display_hint(word):
+    print(f"Hint: The first letter of the word is '{word[0]}'")
 
-words = ['rainbow', 'computer', 'science', 'programming',
-         'python', 'mathematics', 'player', 'condition',
-         'reverse', 'water', 'board', 'geeks']
+def play_game():
+    name = input("What is your name? ")
+    print("Good Luck! ", name)
 
-word = random.choice(words)
+    words = ['rainbow', 'computer', 'science', 'programming',
+             'python', 'mathematics', 'player', 'condition',
+             'reverse', 'water', 'board', 'geeks']
 
-print("Guess the characters")
+    word = random.choice(words)
+    print("Guess the characters")
+    print(f"Category: {get_word_category(word)}")
 
-guesses = ''
+    guesses = ''
+    turns = 12
+    score = 0
+    hint_used = False
 
-turns = 12
+    while turns > 0:
+        failed = 0
 
-while turns > 0:
+        for char in word:
+            if char in guesses:
+                print(char, end=" ")
+            else:
+                print("_", end=" ")
+                failed += 1
 
-    failed = 0
+        print()
 
-    for char in word:
-        if char in guesses:
-            print(char, end=" ")
+        if failed == 0:
+            print("You Win!")
+            print("The word is: ", word)
+            score += 10
+            break
+
+        guess = input("Guess a character (or type 'hint' for a hint): ").lower()  # Convert input to lowercase
+
+        if guess == 'hint':
+            if not hint_used:
+                display_hint(word)
+                hint_used = True
+                continue
+            else:
+                print("Hint already used.")
+                continue
+
+        if len(guess) != 1 or not guess.isalpha():
+            print("Invalid input. Please enter a single alphabetic character.")
+            continue
+
+        if guess in guesses:
+            print("You already guessed that letter. Try again.")
+            continue
+
+        guesses += guess
+
+        if guess not in word:
+            turns -= 1
+            print("Wrong")
+            print("You have", turns, 'more guesses')
+
+            if turns == 0:
+                print("You Lose! The word was:", word)
         else:
-            print("_", end=" ")
-            failed += 1
+            score += 1
 
-    print()  
+    print("Your score is:", score)
 
-    if failed == 0:
-        print("You Win!")
-        print("The word is: ", word)
-        break
+def main():
+    while True:
+        play_game()
+        replay = input("Do you want to play again? (yes/no): ").lower()
+        if replay != 'yes':
+            print("Thanks for playing!")
+            break
 
-    guess = input("Guess a character: ").lower()  # Convert input to lowercase
-
-    if len(guess) != 1 or not guess.isalpha():
-        print("Invalid input. Please enter a single alphabetic character.")
-        continue
-
-    guesses += guess
-
-    if guess not in word:
-        turns -= 1
-        print("Wrong")
-
-        print("You have", + turns, 'more guesses')
-
-        if turns == 0:
-            print("You Lose! The word was:", word)
+if __name__ == "__main__":
+    main()
